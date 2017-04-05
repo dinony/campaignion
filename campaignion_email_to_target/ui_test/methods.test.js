@@ -4,7 +4,7 @@ import find from 'lodash/find'
 import app from '../ui_src/app.vue'
 import testData from './data/example-data.js'
 
-describe('methods', function() {
+describe('methods and computed attributes', function() {
   var vm
 
   beforeEach(function() {
@@ -382,6 +382,8 @@ describe('methods', function() {
 
   })
 
+  // Computed attributes:
+
   describe('unsavedChanges', function() {
     var initialSpecs;
 
@@ -394,33 +396,39 @@ describe('methods', function() {
     })
 
     it('returns false if nothing was changed', function() {
-      expect(vm.unsavedChanges()).toBe(false)
+      expect(vm.unsavedChanges).toBe(false)
     })
 
     it('returns true if a filter value was changed', function() {
       vm.specs[1].filters[0].value += 'bla';
 
-      expect(vm.unsavedChanges()).toBe(true)
+      expect(vm.unsavedChanges).toBe(true)
     })
 
     it('returns true if a message subject was changed', function() {
       vm.specs[0].message.subject += 'foo';
 
-      expect(vm.unsavedChanges()).toBe(true)
+      expect(vm.unsavedChanges).toBe(true)
     })
 
-    it('returns true if the message order was changed', function() {
+    it('returns true if the message order was changed', function(done) {
       var s = vm.specs[3];
       vm.specs[3] = vm.specs[2];
       vm.specs[2] = s;
 
-      expect(vm.unsavedChanges()).toBe(true)
+      vm.$nextTick(() => {
+        expect(vm.unsavedChanges).toBe(true)
+        done()
+      })
     })
 
-    it('returns true if the default message was changed', function() {
+    it('returns true if the default message was changed', function(done) {
       vm.defaultMessage.body += 'foo';
 
-      expect(vm.unsavedChanges()).toBe(true)
+      vm.$nextTick(() => {
+        expect(vm.unsavedChanges).toBe(true)
+        done()
+      })
     })
 
   })

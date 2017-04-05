@@ -19,7 +19,10 @@ class MessageStep extends \Drupal\campaignion_wizard\WizardStep {
       '#type' => 'container',
       '#title' => t('Message that will be sent to target(s)'),
       '#id' => drupal_html_id('email-to-target-messages-widget'),
-      '#attributes' => ['class' => ['email-to-target-messages-widget', 'e2tmw']],
+      '#attributes' => [
+        'class' => ['email-to-target-messages-widget', 'e2tmw'],
+        'data-interrupt-submit' => '',
+      ],
       'app-tag' => [
         '#markup' => '<app></app>'
       ],
@@ -73,6 +76,7 @@ class MessageStep extends \Drupal\campaignion_wizard\WizardStep {
     $settings = ['campaignion_email_to_target' => $settings];
     $form['#attached']['js'][] = ['data' => $settings, 'type' => 'setting'];
     $form['#attached']['js'][] = ['data' => drupal_get_path('module', 'campaignion_email_to_target') . '/js/messages_widget.js', 'scope' => 'footer'];
+    $form['#attached']['js'][] = ['data' => drupal_get_path('module', 'campaignion_wizard') . '/js/interrupt-submit.js', 'scope' => 'footer'];
     $form['#attached']['css'][] = ['data' => drupal_get_path('module', 'campaignion_email_to_target') . '/css/messages_widget.min.css', 'group' => 'CSS_DEFAULT', 'preprocess' => FALSE];
     return $form;
   }

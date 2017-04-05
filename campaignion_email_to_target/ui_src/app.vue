@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :data-has-unsaved-changes="unsavedChanges">
     <button @click="newSpec('message-template')" class="btn add-message" type="button">Add specific message</button>
     <button @click="newSpec('exclusion')" class="btn add-exclusion" type="button">Add exclusion</button>
 
@@ -153,6 +153,18 @@ module.exports = {
       if (this.isEmptyMessage(this.defaultMessage.message)) {
         return [{type: 'message', message: 'Message is empty'}]
       }
+    },
+
+    unsavedChanges() {
+      for (var i = 0, j = this.specs.length; i < j; i++) {
+        if (!isEqual(omit(this.specs[i], ['errors', 'filterStr']), omit(initialData.specs[i], ['errors', 'filterStr']))) {
+          return true
+        }
+      }
+      if (!isEqual(omit(this.defaultMessage, ['errors', 'filterStr']), omit(initialData.defaultMessage, ['errors', 'filterStr']))) {
+        return true
+      }
+      return false
     }
 
   },
@@ -365,20 +377,7 @@ module.exports = {
       return JSON.stringify({
         messageSelection: messages
       })
-    },
-
-    unsavedChanges() {
-      for (var i = 0, j = this.specs.length; i < j; i++) {
-        if (!isEqual(omit(this.specs[i], ['errors', 'filterStr']), omit(initialData.specs[i], ['errors', 'filterStr']))) {
-          return true
-        }
-      }
-      if (!isEqual(omit(this.defaultMessage, ['errors', 'filterStr']), omit(initialData.defaultMessage, ['errors', 'filterStr']))) {
-        return true
-      }
-      return false
     }
-
   },
 
   watch: {
@@ -396,36 +395,24 @@ module.exports = {
   },
 
   ready() {
-    $("form input[type=submit]").on('click.messages-widget', function() {
-      // Attach a 'clicked' attribute to the specific button
-      $("input[type=submit]", $(this).parents("form")).removeAttr("clicked")
-      $(this).attr("clicked", "true")
-    })
+    var $container = $(this.$root.$el)
+    $container.on('request-submit-page request-leave-page', (e) => {
 
-    $('form.wizard-form').on('submit.messages-widget', (e) => {
-      var $clickedButton = $("input[type=submit][clicked=true]", e.currentTarget)
-      var submitVal = $clickedButton.val()
+      const leavePage = () => {
+        $container.trigger('resume-leave-page')
+      }
 
-      function forceSubmit() {
-        $(window).off('beforeunload.messages-widget')
-        $(e.currentTarget).off('submit.messages-widget')
-        $clickedButton.prop('disabled', false).off('click.messages-widget')
-        // reset form values for Drupal.behaviors.formSingleSubmit
-        $(e.currentTarget).removeAttr('data-drupal-form-submit-last')
-        // let firefox catch up with rendering the button
-        setTimeout(function() {
-          $clickedButton.click()
-        }, 0)
+      const stayOnPage = () => {
+        $container.trigger('cancel-leave-page')
       }
 
       const putData = () => {
-        $('input[type=submit]', e.currentTarget).prop('disabled', true)
         this.$http.put(Drupal.settings.campaignion_email_to_target.endpoints.messages, this.serializeData()).then((response) => {
           // success
-          forceSubmit()
+          leavePage()
         }, (response) => {
           // error
-          $('input[type=submit]', e.currentTarget).prop('disabled', false)
+          stayOnPage()
           this.$broadcast('alert', {
             title: 'Service unavailable',
             message: 'The service is temporarily unavailable.<br>Your messages could not be saved.<br>Please try again or contact support if the issue persists.'
@@ -433,18 +420,17 @@ module.exports = {
         })
       }
 
-      // If Back button was hit
-      if (submitVal.toLowerCase() == 'back') {
-        if (this.unsavedChanges()) {
-          e.preventDefault()
+      if (e.type === 'request-leave-page') {
+        if (this.unsavedChanges) {
           this.$broadcast('confirm', {
             title: 'Unsaved changes',
             message: 'You have unsaved changes!<br>You will lose your changes if you go back.',
             confirmBtn: 'Go back anyway',
-            confirm: forceSubmit
+            confirm: leavePage,
+            cancel: stayOnPage
           })
         } else {
-          $(window).off('beforeunload.messages-widget')
+          leavePage()
         }
         return
       }
@@ -461,28 +447,18 @@ module.exports = {
           validationFailed = true
         }
         if (validationFailed) {
-          e.preventDefault()
           this.$broadcast('confirm', {
             title: 'Invalid data',
             message: 'There are validation errors (see error notices).<br>Your campaign might not work as you intended.',
             confirmBtn: 'Save anyway',
-            confirm: putData
+            confirm: putData,
+            cancel: stayOnPage
           })
           return
         }
       }
 
-      // Cancel submit event, make ajax request
-      e.preventDefault()
       putData()
-    })
-
-    $(window).on('beforeunload.messages-widget', (e) => {
-      if (this.unsavedChanges()) {
-        var confirmationMessage = 'Careful! You have unsaved changes!'
-        e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
-        return confirmationMessage;              // Gecko, WebKit, Chrome <34
-      }
     })
 
     // Don't submit the wizard step if user hits Enter
