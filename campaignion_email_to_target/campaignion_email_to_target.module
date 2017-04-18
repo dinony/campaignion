@@ -232,7 +232,7 @@ function campaignion_email_to_target_form_webform_client_form_alter(&$form, &$fo
     }
     foreach ($components as $cid => $component) {
       $page_num = $component['page_num'];
-      $form_state[$pfx]['components'][$cid] = new Component($component);
+      $form_state[$pfx]['components'][$cid] = Component::fromComponent($component);
       $form_state[$pfx]['pages'][$page_num][] = $cid;
     }
   }
@@ -262,7 +262,7 @@ function campaignion_email_to_target_campaignion_activity_save(ActivityInterface
     $submission = $activity->submission();
     $components = $submission->webform->componentsByType('e2t_selector');
     foreach ($components as $cid => $component) {
-      $component_o = new Component($component);
+      $component_o = Component::fromComponent($component);
       $component_o->sendEmails($submission->valuesByCid($cid), $submission);
     }
   }
