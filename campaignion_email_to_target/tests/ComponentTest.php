@@ -49,13 +49,19 @@ class ComponentTest extends \DrupalUnitTestCase {
     ]);
     $element = [];
     $form = [];
-    $form_state = [];
+    $form_state = form_state_defaults();
     $component->render($element, $form, $form_state);
 
     $this->assertEqual("Subject's string", $element['t1']['subject']["#default_value"]);
     $this->assertEqual("Header&#039;s string", $element['t1']['header']["#markup"]);
     $this->assertEqual("Message's string", $element['t1']['message']["#default_value"]);
     $this->assertEqual("Footer&#039;s string", $element['t1']['footer']["#markup"]);
+
+    drupal_prepare_form('e2t_component_element', $element, $form_state);
+    drupal_process_form('e2t_component_element', $element, $form_state);
+    $rendered = drupal_render($element);
+    $this->assertTrue(strpos($rendered, "'") === FALSE, 'Unescaped strings leaked to HTML output.');
+    $this->assertTrue(strpos($rendered, '&amp;') === FALSE, 'Some strings were double-escaped.');
   }
 
 }
